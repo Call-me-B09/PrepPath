@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { View, Text, FlatList, useWindowDimensions, TouchableOpacity, ViewToken } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ClipboardX, Sparkles, CalendarClock, CheckCircle, ArrowRight } from 'lucide-react-native';
-import Animated, { FadeInDown, FadeInUp, useAnimatedScrollHandler, useSharedValue, useAnimatedStyle, withSpring, withTiming, SharedValue } from 'react-native-reanimated';
+import Animated, { FadeInDown, useAnimatedScrollHandler, useSharedValue, useAnimatedStyle, withSpring, withTiming, SharedValue } from 'react-native-reanimated';
 import { router } from 'expo-router';
 
 const SCREENS = [
@@ -29,8 +29,24 @@ const SCREENS = [
         title: 'You stay in control. Always.',
         subtitle: 'No rigid schedules. No pressure. Just consistent progress.',
         icon: CheckCircle,
-    },
+    }
 ];
+
+const PaginationDot = ({ isActive }: { isActive: boolean }) => {
+    const dotStyle = useAnimatedStyle(() => {
+        return {
+            width: withTiming(isActive ? 32 : 8, { duration: 300 }),
+            opacity: withTiming(isActive ? 1 : 0.3, { duration: 300 }),
+        };
+    });
+
+    return (
+        <Animated.View
+            style={[dotStyle]}
+            className="h-2 rounded-full bg-white"
+        />
+    );
+};
 
 const OnboardingItem = ({ item, index, scrollX }: { item: typeof SCREENS[0], index: number, scrollX: SharedValue<number> }) => {
     const { width } = useWindowDimensions();
@@ -112,23 +128,9 @@ export default function Onboarding() {
 
             <View className="px-8 pb-12 pt-4">
                 <View className="flex-row justify-center gap-2 mb-12">
-                    {SCREENS.map((_, index) => {
-                        const dotStyle = useAnimatedStyle(() => {
-                            const isActive = index === currentIndex;
-                            return {
-                                width: withTiming(isActive ? 32 : 8, { duration: 300 }),
-                                opacity: withTiming(isActive ? 1 : 0.3, { duration: 300 }),
-                            };
-                        });
-
-                        return (
-                            <Animated.View
-                                key={index}
-                                style={[dotStyle]}
-                                className="h-2 rounded-full bg-white"
-                            />
-                        );
-                    })}
+                    {SCREENS.map((_, index) => (
+                        <PaginationDot key={index} isActive={index === currentIndex} />
+                    ))}
                 </View>
 
                 <TouchableOpacity
