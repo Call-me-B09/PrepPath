@@ -22,7 +22,7 @@ export default function MainLayout() {
                         },
                         drawerLabelStyle: {
                             color: '#e4e4e7', // zinc-200
-                            marginLeft: -16,
+                            marginLeft: 16,
                             fontSize: 16,
                             fontWeight: '500',
                         },
