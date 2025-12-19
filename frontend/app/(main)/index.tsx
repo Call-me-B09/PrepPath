@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DrawerActions } from '@react-navigation/native';
 import { useNavigation } from 'expo-router';
-import { Menu, Pause, Play, CheckSquare, Square, Clock, Circle } from 'lucide-react-native';
+import { Menu, Pause, Play, CheckSquare, Square, Clock, Circle, Map } from 'lucide-react-native';
 import { useUser } from '../../context/UserContext'; // Updated import
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import AuthButton from '../../components/AuthButton';
@@ -76,6 +76,9 @@ export default function Roadmap() {
                         <Menu size={20} color="white" />
                     </TouchableOpacity>
                     <View className="flex-1 justify-center items-center mt-32">
+                        <View className="w-24 h-24 bg-zinc-900 rounded-full items-center justify-center mb-8 border border-zinc-800">
+                            <Map size={48} color="#e4e4e7" strokeWidth={1} />
+                        </View>
                         <Text className="text-2xl font-bold text-white text-center mb-2">Your PrepPath isn’t created yet</Text>
                         <Text className="text-zinc-400 text-center mb-8">Go to Plan to create your preparation path</Text>
 
