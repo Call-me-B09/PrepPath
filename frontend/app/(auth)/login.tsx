@@ -18,7 +18,13 @@ export default function Login() {
             >
                 <View className="flex-1 p-8">
                     <TouchableOpacity
-                        onPress={() => router.back()}
+                        onPress={() => {
+                            if (router.canGoBack()) {
+                                router.back();
+                            } else {
+                                router.replace('/(auth)');
+                            }
+                        }}
                         className="w-10 h-10 rounded-full bg-zinc-900 items-center justify-center mb-8"
                     >
                         <ArrowLeft size={20} color="white" />
