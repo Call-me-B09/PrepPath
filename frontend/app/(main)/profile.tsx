@@ -37,7 +37,10 @@ export default function Profile() {
                 </Animated.View>
 
                 <Animated.View entering={FadeInDown.delay(200).springify()} className="gap-4">
-                    <TouchableOpacity className="flex-row items-center p-4 bg-zinc-900 rounded-xl">
+                    <TouchableOpacity
+                        onPress={() => router.push('/(submain)/account-details')}
+                        className="flex-row items-center p-4 bg-zinc-900 rounded-xl"
+                    >
                         <User size={20} color="#fff" />
                         <Text className="text-zinc-200 font-medium ml-4">Account Details</Text>
                     </TouchableOpacity>
