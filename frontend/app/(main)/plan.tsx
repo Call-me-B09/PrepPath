@@ -56,10 +56,23 @@ export default function Plan() {
         }
     };
 
-    const handleCreate = () => {
+    const handleCreate = async () => {
         // Finalize creation
-        createRoadmap();
-        navigation.navigate('index' as never);
+        try {
+            await createRoadmap({
+                examName,
+                days,
+                hours,
+                minutes,
+                level: selectedLevel,
+                commitment: selectedCommitment,
+                syllabusFile,
+                pyqFile
+            });
+            navigation.navigate('index' as never);
+        } catch (error) {
+            Alert.alert("Error", "Failed to create roadmap. Please try again.");
+        }
     };
 
     const handleReset = () => {
