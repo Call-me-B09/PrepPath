@@ -27,26 +27,40 @@ const SyllabusItem = ({ title, completed, total }: { title: string, completed: n
 export default function Roadmap() {
     const navigation = useNavigation();
     const { userData, toggleTask } = useUser(); // Use Context
-    const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
-    const [isRunning, setIsRunning] = useState(true); // Default to running
+    const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number, seconds: number }>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+    const [isExamTimerRunning, setIsExamTimerRunning] = useState(true);
 
     const toggleDrawer = () => navigation.dispatch(DrawerActions.toggleDrawer());
 
     useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (isRunning && timeLeft > 0) {
-            interval = setInterval(() => {
-                setTimeLeft((prev) => prev - 1);
-            }, 1000);
-        }
-        return () => clearInterval(interval);
-    }, [isRunning, timeLeft]);
+        if (!userData.examDate) return;
 
-    const formatTime = (seconds: number) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    };
+        const calculateTimeLeft = () => {
+            const difference = +new Date(userData.examDate) - +new Date();
+            if (difference > 0) {
+                return {
+                    days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+                    hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+                    minutes: Math.floor((difference / 1000 / 60) % 60),
+                    seconds: Math.floor((difference / 1000) % 60),
+                };
+            }
+            return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+        };
+
+        setTimeLeft(calculateTimeLeft());
+
+        const timer = setInterval(() => {
+            setTimeLeft(calculateTimeLeft());
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [userData.examDate]);
+
+    // Format for big display (e.g., "45d 12h")
+    // Or just a full countdown?
+    // Let's go with a detailed countdown or a focus on Days + Hours
+
 
     const handleToggleTask = (taskId: string) => {
         const task = userData.tasks.find(t => t.id === taskId);
@@ -136,22 +150,31 @@ export default function Roadmap() {
                     </View>
                 </Animated.View>
 
-                {/* Focus Timer - Auto Running */}
+                {/* Exam Countdown Timer */}
                 <Animated.View entering={FadeInDown.delay(200).springify()} className="mb-8 p-6 bg-zinc-900 rounded-2xl border border-zinc-800 items-center">
                     <View className="flex-row items-center gap-2 mb-4">
                         <View className="w-2 h-2 rounded-full bg-green-500" />
-                        <Text className="text-zinc-400 font-medium">Focus Session Active</Text>
+                        <Text className="text-zinc-400 font-medium">Time Until Exam</Text>
                     </View>
-                    <Text className="text-6xl font-bold text-white mb-6 tabular-nums tracking-tighter">
-                        {formatTime(timeLeft)}
-                    </Text>
 
-                    <TouchableOpacity
-                        onPress={() => setIsRunning(!isRunning)}
-                        className="w-14 h-14 bg-zinc-800 rounded-full items-center justify-center"
-                    >
-                        {isRunning ? <Pause size={24} color="#e4e4e7" fill="#e4e4e7" /> : <Play size={24} color="#e4e4e7" fill="#e4e4e7" />}
-                    </TouchableOpacity>
+                    <View className="flex-row items-baseline gap-4">
+                        <View className="items-center">
+                            <Text className="text-4xl font-bold text-white tabular-nums tracking-tighter">{timeLeft.days}</Text>
+                            <Text className="text-zinc-500 text-xs uppercase font-bold">Days</Text>
+                        </View>
+                        <View className="items-center">
+                            <Text className="text-4xl font-bold text-white tabular-nums tracking-tighter">{timeLeft.hours}</Text>
+                            <Text className="text-zinc-500 text-xs uppercase font-bold">Hrs</Text>
+                        </View>
+                        <View className="items-center">
+                            <Text className="text-4xl font-bold text-white tabular-nums tracking-tighter">{timeLeft.minutes}</Text>
+                            <Text className="text-zinc-500 text-xs uppercase font-bold">Min</Text>
+                        </View>
+                        <View className="items-center">
+                            <Text className="text-4xl font-bold text-white tabular-nums tracking-tighter">{timeLeft.seconds}</Text>
+                            <Text className="text-zinc-500 text-xs uppercase font-bold">Sec</Text>
+                        </View>
+                    </View>
                 </Animated.View>
 
                 {/* Syllabus Progress */}
