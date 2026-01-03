@@ -102,6 +102,18 @@ export const createRoadmap = async (params: CreateRoadmapParams, uid: string = '
     }
 };
 
+export const toggleStep = async (stepId: string, uid: string = 'test-uid-123') => {
+    try {
+        const response = await api.patch(`/roadmap/step/${stepId}`, {}, {
+            headers: { 'x-auth-uid': uid }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Failed to toggle step", error);
+        throw error;
+    }
+}
+
 export const resetRoadmapData = async (uid: string = 'test-uid-123') => {
     // Assuming backend might have a reset endpoint or we just clear via re-fetches
     // For now implement if backend supports, otherwise just a placeholder

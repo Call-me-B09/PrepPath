@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
+import { Alert } from 'react-native';
 import { MOCK_DATA, MOCK_EMPTY_DATA, UserData } from '../constants/MockData';
-import { getDashboardOverview, createRoadmap as apiCreateRoadmap } from '../services/api';
+import { getDashboardOverview, createRoadmap as apiCreateRoadmap, toggleStep as apiToggleStep } from '../services/api';
 
 interface UserContextType {
     userData: UserData;
@@ -53,14 +54,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const toggleTask = (taskId: string) => {
-        setUserData(prev => ({
-            ...prev,
-            tasks: prev.tasks.map(task =>
-                task.id === taskId ? { ...task, completed: !task.completed } : task
-            )
-        }));
-        // TODO: Call API to toggle task
+    const toggleTask = async (taskId: string) => {
+        // Optimistic Update can be tricky if we want to also update syllabus instantly.
+        // For simplicity, let's call API then refresh.
+        // Or if we want better UX, we can optimistically toggle task completion locally first.
+
+        setIsLoading(true);
+        try {
+            await apiToggleStep(taskId);
+            // Refresh dashboard to get updated syllabus counts and new tasks if any
+            await fetchDashboard();
+        } catch (error) {
+            console.error("Toggle task failed", error);
+            Alert.alert("Error", "Failed to update task status");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const resetRoadmap = async () => {
