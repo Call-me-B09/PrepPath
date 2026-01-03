@@ -1,5 +1,7 @@
 const User = require("../models/User");
 const Task = require("../models/Task");
+const Step = require("../models/Step");
+const Roadmap = require("../models/Roadmap");
 const SyllabusSection = require("../models/SyllabusSection");
 
 // Helper to calculate days left
@@ -33,19 +35,28 @@ exports.getDashboardOverview = async (req, res) => {
             });
         }
 
-        const tasks = await Task.find({ userId: user._id });
+        const roadmap = await Roadmap.findOne({ userId: user._id });
+        let steps = [];
+        if (roadmap) {
+            // Get first 3 incomplete steps
+            steps = await Step.find({ roadmapId: roadmap._id, completed: false }).sort({ order: 1 }).limit(3);
+        }
+
+        // If no steps found (or no roadmap), fallback to tasks (or empty)
+        // But the user specifically asked for steps.
+
         const syllabus = await SyllabusSection.find({ userId: user._id });
 
         const dashboardData = {
-            hasRoadmap: true,
+            hasRoadmap: !!roadmap, // specific check
             examName: user.examName || "",
             examDate: user.examDate || "",
             examTimeLeftDays: getDaysLeft(user.examDate),
-            tasks: tasks.map(t => ({
+            tasks: steps.map(t => ({
                 id: t._id,
                 title: t.title,
                 completed: t.completed,
-                durationMinutes: t.durationMinutes
+                durationMinutes: 60 // Default duration as Step doesn't have it
             })),
             syllabus: syllabus.map(s => ({
                 id: s._id,
