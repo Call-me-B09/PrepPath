@@ -3,7 +3,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { View, Text, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DrawerActions } from '@react-navigation/native';
-import { useNavigation } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import { Menu, RefreshCw, Trash2, Settings, Upload, CheckCircle2, Clock, ArrowRight, ArrowLeft } from 'lucide-react-native';
 import { useUser } from '../../context/UserContext';
 import AuthInput from '../../components/AuthInput';
@@ -13,6 +13,7 @@ import Animated, { FadeInDown, FadeInRight, FadeInLeft } from 'react-native-rean
 import ScrollPicker from '../../components/ScrollPicker';
 
 export default function Plan() {
+    const router = useRouter();
     const navigation = useNavigation();
     const { userData, createRoadmap, resetRoadmap } = useUser();
 
@@ -56,9 +57,31 @@ export default function Plan() {
         }
     };
 
+
+
+    // Check local context data instead of static mock
+
+
+    // Creation Wizard State
+    // ... rest of state code if unchanged ...
+
+    // NOTE: We need to see where handleCreate is. It's around line 59.
+    // But I'm replacing the top part too to get router.
+
+    // I will replace handleCreate separately, and adding router separately.
+    // This tool call is ONLY for handleCreate. I will do another for imports/router.
+
     const handleCreate = async () => {
         // Finalize creation
+        if (!examName || (!syllabusFile && !pyqFile)) {
+            // Logic handled by UI disablement usually, but double check.
+            return;
+        }
+
         try {
+            // Navigate to generating screen
+            router.push('/generating');
+
             await createRoadmap({
                 examName,
                 days,
@@ -69,9 +92,12 @@ export default function Plan() {
                 syllabusFile,
                 pyqFile
             });
-            navigation.navigate('index' as never);
+            // Success
+            router.replace('/(main)');
         } catch (error) {
+            console.error(error);
             Alert.alert("Error", "Failed to create roadmap. Please try again.");
+            if (router.canGoBack()) router.back();
         }
     };
 
