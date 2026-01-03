@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
 import { Alert } from 'react-native';
 import { MOCK_DATA, MOCK_EMPTY_DATA, UserData } from '../constants/MockData';
-import { getDashboardOverview, createRoadmap as apiCreateRoadmap, toggleStep as apiToggleStep } from '../services/api';
+import { getDashboardOverview, createRoadmap as apiCreateRoadmap, toggleStep as apiToggleStep, resetRoadmapData } from '../services/api';
 
 interface UserContextType {
     userData: UserData;
@@ -73,8 +73,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     };
 
     const resetRoadmap = async () => {
-        setUserData(MOCK_EMPTY_DATA);
-        // Note: Backend might need a reset call if "reset" implies server-side deletion
+        setIsLoading(true);
+        try {
+            await resetRoadmapData();
+            setUserData(MOCK_EMPTY_DATA);
+        } catch (error) {
+            console.error("Reset roadmap failed", error);
+            Alert.alert("Error", "Failed to reset roadmap");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (

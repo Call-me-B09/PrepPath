@@ -115,10 +115,15 @@ export const toggleStep = async (stepId: string, uid: string = 'test-uid-123') =
 }
 
 export const resetRoadmapData = async (uid: string = 'test-uid-123') => {
-    // Assuming backend might have a reset endpoint or we just clear via re-fetches
-    // For now implement if backend supports, otherwise just a placeholder
-    // The current backend doesn't seem to have a specific reset route separate from creating new
-    return true;
+    try {
+        const response = await api.delete('/roadmap/reset', {
+            headers: { 'x-auth-uid': uid }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Failed to reset roadmap", error);
+        throw error;
+    }
 }
 
 export default api;
