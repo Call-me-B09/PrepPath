@@ -235,3 +235,71 @@ exports.getActiveRoadmap = async (req, res) => {
 
   res.json({ roadmap, steps });
 };
+
+exports.toggleStep = async (req, res) => {
+  try {
+    const { stepId } = req.params;
+    const step = await Step.findById(stepId);
+
+    if (!step) {
+      return res.status(404).json({ message: "Step not found" });
+    }
+
+    // Toggle status
+    const isCompleting = !step.completed;
+    step.completed = isCompleting;
+    await step.save();
+
+    // Update Syllabus Section Count
+    if (step.syllabusSectionId) {
+      const section = await SyllabusSection.findById(step.syllabusSectionId);
+      if (section) {
+        // If completing, increment. If undoing, decrement.
+        // Ensure we don't go below 0 or above total (though logic should handle naturally)
+        section.completed = isCompleting ? section.completed + 1 : Math.max(0, section.completed - 1);
+        await section.save();
+      }
+    }
+
+    res.json({ success: true, step });
+  } catch (error) {
+    console.error("Error toggling step:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.deleteRoadmap = async (req, res) => {
+  try {
+    const { uid } = req;
+    const user = await User.findOne({ uid });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // 1. Delete Roadmap Docs
+    const roadmaps = await Roadmap.find({ userId: user._id });
+    const roadmapIds = roadmaps.map(r => r._id);
+
+    await Roadmap.deleteMany({ userId: user._id });
+
+    // 2. Delete Steps
+    if (roadmapIds.length > 0) {
+      await Step.deleteMany({ roadmapId: { $in: roadmapIds } });
+    }
+
+    // 3. Delete Syllabus
+    await SyllabusSection.deleteMany({ userId: user._id });
+
+    // 4. Reset User Flags
+    user.hasRoadmap = false;
+    user.examName = "";
+    user.examDate = null;
+    await user.save();
+
+    res.json({ success: true, message: "Roadmap reset successfully" });
+  } catch (error) {
+    console.error("Error resetting roadmap:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
