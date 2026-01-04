@@ -18,11 +18,11 @@ function RootLayoutNav() {
         const inAuthGroup = segments[0] === '(auth)';
         const inMainGroup = segments[0] === '(main)';
 
-        if (user && !inMainGroup) {
-            // Redirect to dashboard if logged in and not in main group
+        if (user && inAuthGroup) {
+            // Redirect to dashboard if logged in and trying to access auth screens
             router.replace('/(main)');
-        } else if (!user && inMainGroup) {
-            // Redirect to login if not logged in and trying to access main group
+        } else if (!user && !inAuthGroup) {
+            // Redirect to login if not logged in and not in auth group (trying to access protected routes)
             router.replace('/(auth)/login');
         }
     }, [user, isLoading, segments]);

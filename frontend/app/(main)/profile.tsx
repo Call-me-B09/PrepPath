@@ -12,7 +12,7 @@ export default function Profile() {
     const navigation = useNavigation();
     const router = useRouter();
 
-    const { signOut } = useAuth();
+    const { signOut, user } = useAuth();
     const toggleDrawer = () => navigation.dispatch(DrawerActions.toggleDrawer());
 
     const handleLogout = async () => {
@@ -44,10 +44,12 @@ export default function Profile() {
 
                 <Animated.View entering={FadeInDown.delay(100).springify()} className="items-center mb-12">
                     <View className="w-24 h-24 bg-zinc-800 rounded-full items-center justify-center mb-4 border-2 border-zinc-700">
-                        <User size={40} color="#e4e4e7" />
+                        <Text className="text-3xl font-bold text-zinc-300">
+                            {user?.displayName ? user.displayName.charAt(0).toUpperCase() : "U"}
+                        </Text>
                     </View>
-                    <Text className="text-2xl font-bold text-white mb-1">{MOCK_DATA.userProfile.name}</Text>
-                    <Text className="text-zinc-500">{MOCK_DATA.userProfile.email}</Text>
+                    <Text className="text-2xl font-bold text-white mb-1">{user?.displayName || "User"}</Text>
+                    <Text className="text-zinc-500">{user?.email || "No Email"}</Text>
                 </Animated.View>
 
                 <Animated.View entering={FadeInDown.delay(200).springify()} className="gap-4">
@@ -59,7 +61,10 @@ export default function Profile() {
                         <Text className="text-zinc-200 font-medium ml-4">Account Details</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity className="flex-row items-center p-4 bg-zinc-900 rounded-xl">
+                    <TouchableOpacity
+                        onPress={() => router.push('/(submain)/help-support')}
+                        className="flex-row items-center p-4 bg-zinc-900 rounded-xl"
+                    >
                         <HelpCircle size={20} color="#fff" />
                         <Text className="text-zinc-200 font-medium ml-4">Help & Support</Text>
                     </TouchableOpacity>

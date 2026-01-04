@@ -4,35 +4,36 @@
     "slug": "preppath",
     "scheme": "preppath",
     "version": "1.0.0",
-
-    "web": {
-      "favicon": "./assets/icon.png"
-    },
-
-    "experiments": {
-      "tsconfigPaths": true
-    },
-
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-
     "splash": {
       "image": "./assets/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "black"
+      "backgroundColor": "#000000"
     },
-
-    "assetBundlePatterns": ["**/*"],
-
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true
     },
-
     "android": {
+      "package": "com.b09.preppath",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "favicon": "./assets/icon.png"
+    },
+    "experiments": {
+      "tsconfigPaths": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "05525e09-a474-478f-903f-cf480ba41e3d"
       }
     }
   }
