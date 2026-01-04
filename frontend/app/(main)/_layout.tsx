@@ -60,6 +60,21 @@ export default function MainLayout() {
                         ),
                     }}
                 />
+                <Drawer.Screen
+                    name="second"
+                    options={{
+                        drawerItemStyle: { display: 'none' },
+                        title: 'Second',
+                    }}
+                />
+                <Drawer.Screen
+                    name="third"
+                    options={{
+                        drawerItemStyle: { display: 'none' },
+                        title: 'Third',
+                    }}
+                />
+
             </Drawer>
         </GestureHandlerRootView>
     );

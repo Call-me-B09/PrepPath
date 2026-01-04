@@ -1,21 +1,35 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { DrawerActions } from '@react-navigation/native';
 import { useNavigation, useRouter } from 'expo-router';
 import { Menu, LogOut, HelpCircle, User } from 'lucide-react-native';
 import { MOCK_DATA } from '../../constants/MockData';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Profile() {
     const navigation = useNavigation();
     const router = useRouter();
 
+    const { signOut } = useAuth();
     const toggleDrawer = () => navigation.dispatch(DrawerActions.toggleDrawer());
 
-    const handleLogout = () => {
-        // Clear auth state logic here
-        router.replace('/(auth)/login');
+    const handleLogout = async () => {
+        Alert.alert(
+            "Logout",
+            "Are you sure you want to logout?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Logout",
+                    style: "destructive",
+                    onPress: async () => {
+                        await signOut();
+                    }
+                }
+            ]
+        );
     };
 
     return (

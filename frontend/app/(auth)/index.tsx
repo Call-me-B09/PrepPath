@@ -1,4 +1,4 @@
-import { View, Text } from 'react-native';
+import { View, Text, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Mail } from 'lucide-react-native';
@@ -6,8 +6,11 @@ import AuthButton from '../../components/AuthButton';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import GoogleLogo from '../../components/icons/GoogleLogo';
 
+import { useGoogleAuth } from '../../hooks/useGoogleAuth';
+
 export default function AuthLanding() {
     const router = useRouter();
+    const { signIn, loading } = useGoogleAuth();
 
     return (
         <SafeAreaView className="flex-1 bg-zinc-950">
@@ -28,7 +31,8 @@ export default function AuthLanding() {
                         title="Continue with Google"
                         icon={GoogleLogo}
                         variant="outline"
-                        onPress={() => router.replace('/(main)')}
+                        onPress={signIn}
+                        isLoading={loading}
                     />
                     <AuthButton
                         title="Sign Up with Email"

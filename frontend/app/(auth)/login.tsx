@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Mail, Lock, ArrowLeft } from 'lucide-react-native';
@@ -6,9 +6,38 @@ import AuthInput from '../../components/AuthInput';
 import AuthButton from '../../components/AuthButton';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import GoogleLogo from '../../components/icons/GoogleLogo';
+import { useState } from 'react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../../firebase';
+
+import { useGoogleAuth } from '../../hooks/useGoogleAuth';
 
 export default function Login() {
     const router = useRouter();
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const { signIn, loading: isGoogleLoading } = useGoogleAuth();
+
+
+
+    const handleLogin = async () => {
+        if (!email || !password) {
+            Alert.alert('Error', 'Please fill in all fields');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            router.replace('/(main)');
+        } catch (error: any) {
+            console.error(error);
+            Alert.alert('Login Failed', error.message || 'Something went wrong');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <SafeAreaView className="flex-1 bg-zinc-950">
@@ -41,12 +70,16 @@ export default function Login() {
                                 icon={Mail}
                                 keyboardType="email-address"
                                 autoCapitalize="none"
+                                value={email}
+                                onChangeText={setEmail}
                             />
                             <AuthInput
                                 label="Password"
                                 placeholder="••••••••"
                                 icon={Lock}
                                 isPassword
+                                value={password}
+                                onChangeText={setPassword}
                             />
 
                             <TouchableOpacity className="self-end mb-8">
@@ -55,7 +88,8 @@ export default function Login() {
 
                             <AuthButton
                                 title="Sign In"
-                                onPress={() => router.replace('/(main)')}
+                                onPress={handleLogin}
+                                isLoading={isLoading}
                             />
 
                             <View className="flex-row items-center gap-4 my-6">
@@ -68,8 +102,10 @@ export default function Login() {
                                 title="Google"
                                 icon={GoogleLogo}
                                 variant="outline"
-                                onPress={() => router.replace('/(main)')}
+                                onPress={signIn}
+                                isLoading={isGoogleLoading}
                             />
+
                         </View>
                     </Animated.View>
                 </View>

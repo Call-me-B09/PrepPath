@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, View } from 'react-native';
+import { TouchableOpacity, Text, View, ActivityIndicator } from 'react-native';
 import { LucideIcon } from 'lucide-react-native';
 
 interface AuthButtonProps {
@@ -8,9 +8,10 @@ interface AuthButtonProps {
     variant?: 'primary' | 'outline' | 'ghost';
     icon?: LucideIcon | React.ComponentType<any>;
     fullWidth?: boolean;
+    isLoading?: boolean;
 }
 
-export default function AuthButton({ title, onPress, variant = 'primary', icon: Icon, fullWidth = true }: AuthButtonProps) {
+export default function AuthButton({ title, onPress, variant = 'primary', icon: Icon, fullWidth = true, isLoading = false }: AuthButtonProps) {
     const baseStyles = "h-14 rounded-2xl flex-row items-center justify-center gap-3";
     const variants = {
         primary: "bg-white",
@@ -27,11 +28,17 @@ export default function AuthButton({ title, onPress, variant = 'primary', icon: 
     return (
         <TouchableOpacity
             activeOpacity={0.8}
-            onPress={onPress}
+            onPress={isLoading ? undefined : onPress}
             className={`${baseStyles} ${variants[variant]} ${fullWidth ? 'w-full' : ''}`}
         >
-            {Icon && <Icon size={20} color={variant === 'primary' ? '#09090b' : '#fff'} />}
-            <Text className={textStyles[variant]}>{title}</Text>
+            {isLoading ? (
+                <ActivityIndicator color={variant === 'primary' ? '#09090b' : '#fff'} />
+            ) : (
+                <>
+                    {Icon && <Icon size={20} color={variant === 'primary' ? '#09090b' : '#fff'} />}
+                    <Text className={textStyles[variant]}>{title}</Text>
+                </>
+            )}
         </TouchableOpacity>
     );
 }

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import { Alert } from 'react-native';
+import { useAuth } from './AuthContext';
 import { MOCK_DATA, MOCK_EMPTY_DATA, UserData } from '../constants/MockData';
 import { getDashboardOverview, createRoadmap as apiCreateRoadmap, toggleStep as apiToggleStep, resetRoadmapData } from '../services/api';
 
@@ -14,38 +15,47 @@ interface UserContextType {
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
+    const { user } = useAuth();
     const [userData, setUserData] = useState<UserData>(MOCK_EMPTY_DATA);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Initial Fetch
+    // Initial Fetch when user changes
     React.useEffect(() => {
-        fetchDashboard();
-    }, []);
+        if (user) {
+            fetchDashboard(user.uid);
+        } else {
+            setUserData(MOCK_EMPTY_DATA);
+        }
+    }, [user]);
 
-    const fetchDashboard = async () => {
+    const fetchDashboard = async (uid?: string) => {
+        const targetUid = uid || user?.uid;
+        if (!targetUid) return;
+
+        console.log(`[UserContext] Fetching dashboard for UID: ${targetUid}`);
+
         setIsLoading(true);
         try {
-            const data = await getDashboardOverview();
-            // Backend returns simplified object, we might need to ensure it matches UserData interface
-            // or if the backend returns the exact shape.
-            // Based on controller, it returns matching shape.
+            const data = await getDashboardOverview(targetUid);
+            console.log("[UserContext] Dashboard data received:", data ? "Data present" : "No data");
             if (data) {
                 setUserData(data);
             }
         } catch (error) {
             console.log("Error fetching dashboard, using empty");
-            // Optionally set error state
         } finally {
             setIsLoading(false);
         }
     };
 
     const createRoadmap = async (params: any) => {
+        if (!user) return;
+        console.log("[UserContext] Creating roadmap with params:", JSON.stringify(params, null, 2));
         setIsLoading(true);
         try {
-            await apiCreateRoadmap(params);
-            // Refresh data after creation
-            await fetchDashboard();
+            await apiCreateRoadmap(params, user.uid);
+            console.log("[UserContext] Roadmap created successfully");
+            await fetchDashboard(user.uid); // Refresh data after creation
         } catch (error) {
             console.error("Create roadmap failed", error);
             throw error; // Re-throw to be handled by UI
@@ -55,15 +65,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     };
 
     const toggleTask = async (taskId: string) => {
-        // Optimistic Update can be tricky if we want to also update syllabus instantly.
-        // For simplicity, let's call API then refresh.
-        // Or if we want better UX, we can optimistically toggle task completion locally first.
-
+        if (!user) return;
         setIsLoading(true);
         try {
-            await apiToggleStep(taskId);
-            // Refresh dashboard to get updated syllabus counts and new tasks if any
-            await fetchDashboard();
+            await apiToggleStep(taskId, user.uid);
+            await fetchDashboard(user.uid);
         } catch (error) {
             console.error("Toggle task failed", error);
             Alert.alert("Error", "Failed to update task status");
@@ -73,10 +79,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     };
 
     const resetRoadmap = async () => {
+        if (!user) return;
         setIsLoading(true);
         try {
-            await resetRoadmapData();
-            setUserData(MOCK_EMPTY_DATA);
+            await resetRoadmapData(user.uid);
+            setUserData(MOCK_EMPTY_DATA); // Or fetchDashboard() which will return empty
         } catch (error) {
             console.error("Reset roadmap failed", error);
             Alert.alert("Error", "Failed to reset roadmap");
