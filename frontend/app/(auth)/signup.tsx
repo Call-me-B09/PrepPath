@@ -1,22 +1,26 @@
-import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Mail, Lock, User, ArrowLeft } from 'lucide-react-native';
+import { Mail, Lock, User, ArrowLeft, KeyRound } from 'lucide-react-native';
 import AuthInput from '../../components/AuthInput';
 import AuthButton from '../../components/AuthButton';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useState } from 'react';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from '../../firebase';
+import { useSignUp } from '@clerk/clerk-expo';
 
 export default function Signup() {
     const router = useRouter();
+    const { isLoaded, signUp, setActive } = useSignUp();
+
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [code, setCode] = useState('');
+    const [pendingVerification, setPendingVerification] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
     const handleSignup = async () => {
+        if (!isLoaded) return;
         if (!name || !email || !password) {
             Alert.alert('Error', 'Please fill in all fields');
             return;
@@ -24,18 +28,78 @@ export default function Signup() {
 
         setIsLoading(true);
         try {
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            await updateProfile(userCredential.user, {
-                displayName: name
+            await signUp.create({
+                firstName: name.split(' ')[0],
+                lastName: name.split(' ').slice(1).join(' '),
+                emailAddress: email,
+                password,
             });
-            router.replace('/(main)');
+
+            await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+            setPendingVerification(true);
         } catch (error: any) {
-            console.error(error);
-            Alert.alert('Signup Failed', error.message || 'Something went wrong');
+            console.error(JSON.stringify(error, null, 2));
+            Alert.alert('Signup Failed', error.errors?.[0]?.message || 'Something went wrong');
         } finally {
             setIsLoading(false);
         }
     };
+
+    const handleVerify = async () => {
+        if (!isLoaded) return;
+        if (!code) {
+            Alert.alert('Error', 'Please enter verification code');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const completeSignUp = await signUp.attemptEmailAddressVerification({
+                code,
+            });
+
+            if (completeSignUp.status === 'complete') {
+                await setActive({ session: completeSignUp.createdSessionId });
+                // Navigation handled by auth listener
+            } else {
+                console.error(JSON.stringify(completeSignUp, null, 2));
+                Alert.alert('Verification Failed', 'Unable to verify email.');
+            }
+        } catch (error: any) {
+            console.error(JSON.stringify(error, null, 2));
+            Alert.alert('Verification Failed', error.errors?.[0]?.message || 'Something went wrong');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    if (pendingVerification) {
+        return (
+            <SafeAreaView className="flex-1 bg-zinc-950">
+                <View className="flex-1 p-8 pt-16">
+                    <Text className="text-3xl font-bold text-white mb-2">Verify Email</Text>
+                    <Text className="text-zinc-400 text-lg mb-8">Enter the code sent to {email}</Text>
+
+                    <AuthInput
+                        label="Verification Code"
+                        placeholder="123456"
+                        icon={KeyRound}
+                        keyboardType="number-pad"
+                        value={code}
+                        onChangeText={setCode}
+                    />
+
+                    <View className="h-4" />
+
+                    <AuthButton
+                        title="Verify Email"
+                        onPress={handleVerify}
+                        isLoading={isLoading}
+                    />
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView className="flex-1 bg-zinc-950">

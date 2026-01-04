@@ -5,12 +5,49 @@ import { Mail } from 'lucide-react-native';
 import AuthButton from '../../components/AuthButton';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import GoogleLogo from '../../components/icons/GoogleLogo';
+import { useCallback, useState } from 'react';
+import { useOAuth } from '@clerk/clerk-expo';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 
-import { useGoogleAuth } from '../../hooks/useGoogleAuth';
+// Warm up browser for OAuth
+export const useWarmUpBrowser = () => {
+    useState(() => {
+        void WebBrowser.warmUpAsync();
+    });
+    return {
+        warmUpAsync: WebBrowser.warmUpAsync,
+        coolDownAsync: WebBrowser.coolDownAsync,
+    };
+};
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function AuthLanding() {
+    useWarmUpBrowser();
     const router = useRouter();
-    const { signIn, loading } = useGoogleAuth();
+    const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleGoogleSignIn = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            const { createdSessionId, setActive } = await startOAuthFlow({
+                redirectUrl: Linking.createURL('/'),
+            });
+
+            if (createdSessionId && setActive) {
+                await setActive({ session: createdSessionId });
+            } else {
+                // Use signIn or signUp for next steps such as MFA
+            }
+        } catch (err: any) {
+            console.error("OAuth error", err);
+            Alert.alert("Google Sign-In Error", err.errors?.[0]?.message || "Failed to sign in with Google");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [startOAuthFlow]);
 
     return (
         <SafeAreaView className="flex-1 bg-zinc-950">
@@ -31,8 +68,8 @@ export default function AuthLanding() {
                         title="Continue with Google"
                         icon={GoogleLogo}
                         variant="outline"
-                        onPress={signIn}
-                        isLoading={loading}
+                        onPress={handleGoogleSignIn}
+                        isLoading={isLoading}
                     />
                     <AuthButton
                         title="Sign Up with Email"

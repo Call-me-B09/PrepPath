@@ -16,7 +16,8 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.b09.preppath"
     },
     "android": {
       "package": "com.b09.preppath",
@@ -35,6 +36,9 @@
       "eas": {
         "projectId": "05525e09-a474-478f-903f-cf480ba41e3d"
       }
-    }
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
   }
 }
