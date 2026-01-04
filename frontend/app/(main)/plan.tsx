@@ -302,12 +302,7 @@ export default function Plan() {
                         <Text className="text-zinc-400">{userData.examTimeLeftDays} days remaining</Text>
                     </View>
 
-                    <TouchableOpacity className="flex-row items-center justify-between p-4 bg-zinc-900/50 rounded-xl border border-zinc-800">
-                        <View className="flex-row items-center gap-3">
-                            <Settings size={20} color="#fff" />
-                            <Text className="text-zinc-200 font-medium">Adjust Daily Hours</Text>
-                        </View>
-                    </TouchableOpacity>
+
 
                     <View className="mt-8">
                         <Text className="text-red-400 font-medium mb-4">Danger Zone</Text>
