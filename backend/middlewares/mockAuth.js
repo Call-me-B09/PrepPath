@@ -1,6 +1,11 @@
 module.exports = (req, res, next) => {
-  // TEMP: simulate Firebase UID
-  console.log(`[MockAuth] Request: ${req.method} ${req.url} - Assigning default UID`);
-  req.uid = "test-firebase-uid-123";
+  const headerUid = req.headers['x-auth-uid'];
+  if (headerUid) {
+    req.uid = headerUid;
+  } else {
+    // Fallback for testing/dev if needed, or remove
+    console.log(`[MockAuth] No x-auth-uid header, defaulting to test UID`);
+    req.uid = "test-firebase-uid-123";
+  }
   next();
 };

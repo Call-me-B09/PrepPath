@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Mail, Lock, ArrowLeft } from 'lucide-react-native';
@@ -6,22 +6,38 @@ import AuthInput from '../../components/AuthInput';
 import AuthButton from '../../components/AuthButton';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import GoogleLogo from '../../components/icons/GoogleLogo';
-import { useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../../firebase';
+import { useState, useCallback } from 'react';
+import { useSignIn } from '@clerk/clerk-expo';
+import { useOAuth } from '@clerk/clerk-expo';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 
-import { useGoogleAuth } from '../../hooks/useGoogleAuth';
+// Warm up browser for OAuth
+export const useWarmUpBrowser = () => {
+    useState(() => {
+        void WebBrowser.warmUpAsync();
+    });
+    return {
+        warmUpAsync: WebBrowser.warmUpAsync,
+        coolDownAsync: WebBrowser.coolDownAsync,
+    };
+};
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function Login() {
+    useWarmUpBrowser();
     const router = useRouter();
+    const { signIn, setActive, isLoaded } = useSignIn();
+    const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const { signIn, loading: isGoogleLoading } = useGoogleAuth();
-
-
+    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
     const handleLogin = async () => {
+        if (!isLoaded) return;
         if (!email || !password) {
             Alert.alert('Error', 'Please fill in all fields');
             return;
@@ -29,15 +45,45 @@ export default function Login() {
 
         setIsLoading(true);
         try {
-            await signInWithEmailAndPassword(auth, email, password);
-            router.replace('/(main)');
+            const completeSignIn = await signIn.create({
+                identifier: email,
+                password,
+            });
+
+            if (completeSignIn.status === 'complete') {
+                await setActive({ session: completeSignIn.createdSessionId });
+                // Navigation is handled by AuthContext effect
+            } else {
+                console.log(JSON.stringify(completeSignIn, null, 2));
+                Alert.alert('Login Failed', 'Additional steps required (e.g. MFA).');
+            }
         } catch (error: any) {
-            console.error(error);
-            Alert.alert('Login Failed', error.message || 'Something went wrong');
+            console.error(JSON.stringify(error, null, 2));
+            Alert.alert('Login Failed', error.errors?.[0]?.message || 'Something went wrong');
         } finally {
             setIsLoading(false);
         }
     };
+
+    const handleGoogleSignIn = useCallback(async () => {
+        try {
+            setIsGoogleLoading(true);
+            const { createdSessionId, transport, setActive } = await startOAuthFlow({
+                redirectUrl: Linking.createURL('/'),
+            });
+
+            if (createdSessionId && setActive) {
+                await setActive({ session: createdSessionId });
+            } else {
+                // Use signIn or signUp for next steps such as MFA
+            }
+        } catch (err: any) {
+            console.error("OAuth error", err);
+            Alert.alert("Google Sign-In Error", err.errors?.[0]?.message || "Failed to sign in with Google");
+        } finally {
+            setIsGoogleLoading(false);
+        }
+    }, [startOAuthFlow]);
 
     return (
         <SafeAreaView className="flex-1 bg-zinc-950">
@@ -102,7 +148,7 @@ export default function Login() {
                                 title="Google"
                                 icon={GoogleLogo}
                                 variant="outline"
-                                onPress={signIn}
+                                onPress={handleGoogleSignIn}
                                 isLoading={isGoogleLoading}
                             />
 
