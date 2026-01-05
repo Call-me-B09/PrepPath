@@ -5,38 +5,48 @@
     "scheme": "preppath",
     "version": "1.0.0",
     "orientation": "portrait",
+
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+
     "splash": {
-      "image": "./assets/icon.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#000000"
+      "backgroundColor": "#0f172a"
     },
+
     "assetBundlePatterns": [
       "**/*"
     ],
+
+    "android": {
+      "package": "com.b09.preppath",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f172a"
+      }
+    },
+
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.b09.preppath"
     },
-    "android": {
-      "package": "com.b09.preppath",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
-    },
+
     "web": {
-      "favicon": "./assets/icon.png"
+      "favicon": "./assets/favicon.png"
     },
+
     "experiments": {
       "tsconfigPaths": true
     },
+
     "extra": {
       "eas": {
         "projectId": "05525e09-a474-478f-903f-cf480ba41e3d"
       }
     },
+
     "plugins": [
       "expo-secure-store"
     ]
