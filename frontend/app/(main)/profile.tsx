@@ -34,7 +34,7 @@ export default function Profile() {
 
     return (
         <SafeAreaView className="flex-1 bg-zinc-950">
-            <View className="flex-1 p-6">
+            <Animated.View entering={FadeInDown} className="flex-1 p-6">
                 <View className="flex-row items-center mb-12 gap-4">
                     <TouchableOpacity onPress={toggleDrawer} className="w-10 h-10 bg-zinc-900 rounded-full items-center justify-center">
                         <Menu size={20} color="white" />
@@ -77,7 +77,7 @@ export default function Profile() {
                         <Text className="text-red-400 font-medium ml-4">Logout</Text>
                     </TouchableOpacity>
                 </Animated.View>
-            </View>
+            </Animated.View>
         </SafeAreaView>
     );
 }

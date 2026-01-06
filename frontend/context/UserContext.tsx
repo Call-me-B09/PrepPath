@@ -1,108 +1,145 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { useAuth } from './AuthContext';
-import { MOCK_DATA, MOCK_EMPTY_DATA, UserData } from '../constants/MockData';
-import { getDashboardOverview, createRoadmap as apiCreateRoadmap, toggleStep as apiToggleStep, resetRoadmapData } from '../services/api';
+import { MOCK_EMPTY_DATA, UserData } from '../constants/MockData';
+import {
+    getDashboardOverview,
+    createRoadmap as apiCreateRoadmap,
+    toggleStep as apiToggleStep,
+    resetRoadmapData,
+} from '../services/api';
 
 interface UserContextType {
     userData: UserData;
-    createRoadmap: (params: any) => Promise<void>;
-    resetRoadmap: () => void;
-    toggleTask: (taskId: string) => void;
     isLoading: boolean;
+    createRoadmap: (params: any) => Promise<void>;
+    resetRoadmap: () => Promise<void>;
+    toggleTask: (taskId: string) => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
+
     const [userData, setUserData] = useState<UserData>(MOCK_EMPTY_DATA);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Initial Fetch when user changes
-    React.useEffect(() => {
-        if (user) {
-            fetchDashboard(user.uid);
-        } else {
+    const lastFetchedUid = useRef<string | null>(null);
+    const isUnmounted = useRef(false);
+
+    /* ---------- CLEANUP ---------- */
+    useEffect(() => {
+        return () => {
+            isUnmounted.current = true;
+        };
+    }, []);
+
+    /* ---------- FETCH DASHBOARD ON LOGIN ---------- */
+    useEffect(() => {
+        if (!user?.uid) {
+            lastFetchedUid.current = null;
             setUserData(MOCK_EMPTY_DATA);
+            setIsLoading(false); // <--- FORCE RESET
+            return;
         }
-    }, [user]);
 
-    const fetchDashboard = async (uid?: string) => {
-        const targetUid = uid || user?.uid;
-        if (!targetUid) return;
+        if (lastFetchedUid.current === user.uid) return;
 
-        console.log(`[UserContext] Fetching dashboard for UID: ${targetUid}`);
+        lastFetchedUid.current = user.uid;
+        fetchDashboard(user.uid);
+    }, [user?.uid]);
 
+    /* ---------- API CALLS ---------- */
+
+    const fetchDashboard = async (uid: string) => {
+        if (isUnmounted.current) return;
+
+        console.log(`[UserContext] Fetching dashboard for UID: ${uid}`);
         setIsLoading(true);
+
         try {
-            const data = await getDashboardOverview(targetUid);
-            console.log("[UserContext] Dashboard data received:", data ? "Data present" : "No data");
-            if (data) {
+            const data = await getDashboardOverview(uid);
+            if (!isUnmounted.current && data) {
+                console.log('[UserContext] Dashboard data received');
                 setUserData(data);
             }
-        } catch (error) {
-            console.log("Error fetching dashboard, using empty");
+        } catch (err) {
+            console.error('Dashboard fetch failed', err);
+            if (!isUnmounted.current) {
+                setUserData(MOCK_EMPTY_DATA);
+            }
         } finally {
-            setIsLoading(false);
+            if (!isUnmounted.current) {
+                setIsLoading(false);
+            }
         }
     };
 
     const createRoadmap = async (params: any) => {
-        if (!user) return;
-        console.log("[UserContext] Creating roadmap with params:", JSON.stringify(params, null, 2));
+        if (!user?.uid) return;
+
         setIsLoading(true);
         try {
             await apiCreateRoadmap(params, user.uid);
-            console.log("[UserContext] Roadmap created successfully");
-            await fetchDashboard(user.uid); // Refresh data after creation
-        } catch (error) {
-            console.error("Create roadmap failed", error);
-            throw error; // Re-throw to be handled by UI
+            await fetchDashboard(user.uid);
         } finally {
-            setIsLoading(false);
+            if (!isUnmounted.current) {
+                setIsLoading(false);
+            }
         }
     };
 
     const toggleTask = async (taskId: string) => {
-        if (!user) return;
+        if (!user?.uid) return;
+
         setIsLoading(true);
         try {
             await apiToggleStep(taskId, user.uid);
             await fetchDashboard(user.uid);
-        } catch (error) {
-            console.error("Toggle task failed", error);
-            Alert.alert("Error", "Failed to update task status");
+        } catch {
+            Alert.alert('Error', 'Failed to update task');
         } finally {
-            setIsLoading(false);
+            if (!isUnmounted.current) {
+                setIsLoading(false);
+            }
         }
     };
 
     const resetRoadmap = async () => {
-        if (!user) return;
+        if (!user?.uid) return;
+
         setIsLoading(true);
         try {
             await resetRoadmapData(user.uid);
-            setUserData(MOCK_EMPTY_DATA); // Or fetchDashboard() which will return empty
-        } catch (error) {
-            console.error("Reset roadmap failed", error);
-            Alert.alert("Error", "Failed to reset roadmap");
+            setUserData(MOCK_EMPTY_DATA);
+        } catch {
+            Alert.alert('Error', 'Failed to reset roadmap');
         } finally {
-            setIsLoading(false);
+            if (!isUnmounted.current) {
+                setIsLoading(false);
+            }
         }
     };
 
     return (
-        <UserContext.Provider value={{ userData, createRoadmap, resetRoadmap, toggleTask, isLoading }}>
+        <UserContext.Provider
+            value={{
+                userData,
+                isLoading,
+                createRoadmap,
+                resetRoadmap,
+                toggleTask,
+            }}
+        >
             {children}
         </UserContext.Provider>
     );
 }
 
+/* ---------- HOOK ---------- */
 export function useUser() {
-    const context = useContext(UserContext);
-    if (context === undefined) {
-        throw new Error('useUser must be used within a UserProvider');
-    }
-    return context;
+    const ctx = useContext(UserContext);
+    if (!ctx) throw new Error('useUser must be used within UserProvider');
+    return ctx;
 }

@@ -1,8 +1,7 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useAuth as useClerkAuth, useUser } from '@clerk/clerk-expo';
-import { router } from 'expo-router';
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import { useAuth as useClerkAuth, useUser } from "@clerk/clerk-expo";
+import { router } from "expo-router";
 
-// Define a minimal User type compatible with what the app expects, or extend it
 interface UserData {
     uid: string;
     email: string | null;
@@ -19,79 +18,96 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const { user: clerkUser, isLoaded: isUserLoaded } = useUser();
+    const { user: clerkUser, isLoaded } = useUser();
     const { signOut: clerkSignOut } = useClerkAuth();
 
-    // Derived state for app consumption
-    const [userData, setUserData] = useState<UserData | null>(null);
-    const isLoading = !isUserLoaded;
+    const [user, setUser] = useState<UserData | null>(null);
+
+    // 🔒 HARD LOCK — prevents repeat sync
+    const syncedUidRef = useRef<string | null>(null);
+
+    const isLoading = !isLoaded;
 
     useEffect(() => {
-        if (clerkUser) {
-            const mappedUser: UserData = {
-                uid: clerkUser.id,
-                email: clerkUser.primaryEmailAddress?.emailAddress || null,
-                displayName: clerkUser.fullName,
-                photoURL: clerkUser.imageUrl,
-            };
+        if (!isLoaded) return;
 
-            console.log("Auth State Changed. User:", mappedUser.uid);
-            syncUserWithBackend(mappedUser);
-            setUserData(mappedUser);
-        } else {
-            console.log("Auth State Changed. User: null");
-            setUserData(null);
+        // 🔓 Signed out
+        if (!clerkUser?.id) {
+            syncedUidRef.current = null;
+            setUser(null);
+            return;
         }
-    }, [clerkUser]);
+
+        // 🛑 Same user already synced → STOP
+        if (syncedUidRef.current === clerkUser.id) {
+            return;
+        }
+
+        const mappedUser: UserData = {
+            uid: clerkUser.id,
+            email: clerkUser.primaryEmailAddress?.emailAddress ?? null,
+            displayName: clerkUser.fullName ?? null,
+            photoURL: clerkUser.imageUrl ?? null,
+        };
+
+        console.log("Auth State Changed → signed in:", mappedUser.uid);
+
+        syncedUidRef.current = clerkUser.id;
+        setUser(mappedUser);
+        syncUserWithBackend(mappedUser);
+
+    }, [clerkUser?.id, isLoaded]); // ✅ ONLY ID, not whole object
+
+
 
     const signOut = async () => {
         try {
-            console.log("Signing out...");
             await clerkSignOut();
-            // Router redirection is handled by _layout.tsx based on user state
-        } catch (error) {
-            console.error("Sign out error", error);
-        }
-    };
 
-    const syncUserWithBackend = async (user: UserData) => {
-        try {
-            console.log("Syncing user with backend...", user.uid);
-            const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/user/sync`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    uid: user.uid,
-                    email: user.email,
-                    name: user.displayName,
-                    photoURL: user.photoURL,
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Sync failed with status: ${response.status}`);
+            // Try Native Dev Reload (Works in Expo Go/Dev Client)
+            try {
+                const { NativeModules } = require('react-native');
+                if (NativeModules.DevSettings) {
+                    NativeModules.DevSettings.reload();
+                    return;
+                }
+            } catch (e) {
+                // Ignore dev reload error
             }
 
-            const data = await response.json();
-            console.log("User synced success:", data);
+            // Fallback to Router Navigation
+            router.replace('/');
         } catch (error) {
-            console.error("Error syncing user with backend:", error);
+            console.error("Sign out error", error);
+            router.replace('/');
         }
     };
 
     return (
-        <AuthContext.Provider value={{ user: userData, isLoading, signOut }}>
+        <AuthContext.Provider value={{ user, isLoading, signOut }}>
             {children}
         </AuthContext.Provider>
     );
 }
 
 export function useAuth() {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
+    const ctx = useContext(AuthContext);
+    if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+    return ctx;
+}
+
+async function syncUserWithBackend(user: UserData) {
+    try {
+        console.log("Syncing user with backend:", user.uid);
+
+        await fetch(`${process.env.EXPO_PUBLIC_API_URL}/user/sync`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(user),
+        });
+
+        console.log("User sync successful");
+    } catch (err) {
+        console.error("User sync failed", err);
     }
-    return context;
 }

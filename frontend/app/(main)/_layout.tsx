@@ -4,7 +4,26 @@ import { StatusBar } from 'expo-status-bar';
 import { Map, Edit3, User } from 'lucide-react-native';
 import { Platform } from 'react-native';
 
+import { Redirect, useRouter } from 'expo-router';
+import { useAuth } from '../../context/AuthContext';
+import { View, ActivityIndicator } from 'react-native';
+import { useEffect } from 'react';
+
 export default function MainLayout() {
+    const { user, isLoading } = useAuth();
+    const router = useRouter();
+
+    if (isLoading) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#09090b' }}>
+                <ActivityIndicator size="large" color="#ffffff" />
+            </View>
+        );
+    }
+
+    // Safety check: render nothing if user is missing (handled by AuthContext redirect)
+    if (!user) return null;
+
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <StatusBar style="light" />
